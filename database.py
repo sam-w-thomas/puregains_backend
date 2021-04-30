@@ -21,7 +21,7 @@ def add_media(media):
     id = unique_id.gen_id()
     date = time.strftime('%Y-%m-%d %H:%M:%S')
 
-    media_sql = "INSERT INTO Media (media_id,date_posted,content) VALUES (%s,%s,%s)"
+    media_sql = "INSERT INTO media (media_id,date_posted,content) VALUES (%s,%s,%s)"
     values = (id, date, media)
 
     try:

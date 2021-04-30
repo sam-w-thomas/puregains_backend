@@ -88,13 +88,88 @@ def check_password(username, password):
     :return: boolean:
     """
 
-    sql = "SELECT password FROM user WHERE password = %s"
     cursor = db.cursor()
+    sql = "SELECT password FROM user WHERE username = %s"
 
-    cursor.execute(sql, (username,))
-    actual_password = cursor.fetchone()
+    try:
+        cursor.execute(sql, (username,))
+        actual_password = cursor.fetchone()
+
+        db.commit()
+    except:
+        print("Unable to get user information")
+        raise Exception
+
+    if actual_password == None: #Unable to get password
+        raise Exception
+
+    return True if actual_password[0] == password else False
+
+def user_info(username):
+    """
+    Retrive information on user: name, birth_date, avatar and tags
+
+    :param username:
+    :return: info_user: Tuple of user information
+    """
+    cursor = db.cursor()
+    user_sql = "SELECT name,birth_date,avatar_media_id,user_tags FROM user WHERE username = %s"
+
+    info_user = ()
+    try:
+        cursor.execute(user_sql, (username,))
+        info_user = cursor.fetchone()
+    except:
+        print("Unable to get user information")
+        raise Exception
+
+    return info_user
+
+def update_user(username, name=None,avatar=None,reward_points=None,tags=None):
+    """
+    Update user values
+    :param username:
+    :param name:
+    :param avatar:
+    :param reward_points:
+    :param tags:
+    :return:
+    """
+
+    cursor = db.cursor()
+    user_sql = "SELECT reward_profile_id FROM user WHERE username = %s"
+
+    #Get initial information
+    try:
+        cursor.execute(user_sql, (username,))
+        reward_id = cursor.fetchone()[0]
+    except:
+        print("Unable to get user information, to update")
+        raise Exception
 
     db.commit()
 
-    return True if actual_password == password else False
+    #Begin main edit
+    try:
+        if(name != None):
+            name_sql = "UPDATE user SET name = %s WHERE username = %s"
+            cursor.execute(name_sql, (name,username))
 
+        if(avatar != None):
+            avatar_media_id = database.add_media(avatar)
+            avatar_sql = "UPDATE user SET avatar_media_id = %s WHERE username = %s"
+            cursor.execute(avatar_sql, (avatar_media_id,username))
+
+        if(reward_points != None):
+            reward_sql = "UPDATE reward_profile SET points = %s WHERE reward_id = %s"
+            cursor.execute(reward_sql, (reward_points, reward_id))
+
+        if (tags != None):
+            tags_sql = "UPDATE user SET user_tags = %s WHERE username = %s"
+            cursor.execute(tags_sql, (tags, username))
+
+        db.commit()
+
+    except:
+        print("Unable to update user information")
+        raise Exception
