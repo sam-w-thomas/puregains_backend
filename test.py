@@ -1,18 +1,46 @@
+import datetime
+
+import util
 import user
-import time
-import database
 import post
 
-# user.create_user(
+# print(user.create_user(
 #     "Samuel Thomas",
-#     time.strftime('%Y-%m-%d %H:%M:%S'),
-#     database.create_media("imgs/sam_picture.jpg"),
-#     "PASSWORD"
+#     datetime.date(1999, 12, 4),
+#     "sam_photo",
+#     "ROB"
+# ))
+
+# user.delete_user("samue.1f7cd1")
+
+# user.update_user("samue.5e1588", avatar_path="leg_squat")
+
+# post.create_post(
+#     "samue.062405",
+#     "ROAST"
 # )
 
-post.create_post(
-    "samue.cf45d2",
-    "Gotta get them squats working lovely HOT",
-    likes=0,
-    media=database.create_media("imgs/sam_picture.jpg")
+# post.update_post(
+#     "0f4f8201-ab4b-11eb-a71f-b0fc36c63f34",
+#     post_tags="hello, gym, excercise"
+# )
+
+# print(post.get_post_user("samue.062405"))
+
+# print(
+#     post.get_post_tag_name(
+#         name="thomas"
+#     )
+# )
+
+# print(
+#     post.add_comment(
+#         "0f4f8201-ab4b-11eb-a71f-b0fc36c63f34",
+#         "THIS IS A MESSAGE FOR A COMMENT",
+#         "samue.062405"
+#     )
+# )
+
+print(
+    post.remove_comment("693f712e-ab53-11eb-a370-b0fc36c63f34")
 )

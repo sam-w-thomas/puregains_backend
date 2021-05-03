@@ -6,6 +6,9 @@
       <synchronize>true</synchronize>
       <jdbc-driver>com.mysql.cj.jdbc.Driver</jdbc-driver>
       <jdbc-url>jdbc:mysql://127.0.0.1:3306/mydb</jdbc-url>
+      <driver-properties>
+        <property name="serverTimezone" value="GMT+0" />
+      </driver-properties>
     </data-source>
   </component>
 </project>

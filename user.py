@@ -1,42 +1,46 @@
 import database
-import unique_id
+import util
 import time
-from PIL import Image
 import numpy
 
 db = database.gains_db
 
 
-def create_user(name,birth_date,avatar,password):
+def create_user(name, birth_date, avatar_path, password, user_tags=""):
     """
     Create a user
+    :param user_tags:
+    :param avatar_path:
     :param name:
     :param birth_date:
-    :param avatar:
     :param password:
     :return: username:
     """
     cursor = db.cursor()
 
-    #ID setup
-    avatar = database.add_media(avatar) #wrap in try, except - if problem set avatar as standard
-    username = unique_id.gen_username(name)
+    username = util.gen_username(name)
     reward_profile = create_reward_profile()
 
-    create_sql = "INSERT INTO user (username,name,avatar_media_id,birth_date,password,reward_profile_id) VALUES (%s,%s,%s,%s,%s,%s)"
+    create_sql = "INSERT INTO user (username,name,avatar_path,birth_date,password,reward_profile_id,user_tags) VALUES (%s,%s,%s,%s,%s,%s,%s)"
     values = (
         username,
         name,
-        avatar,
+        avatar_path,
         birth_date,
         password,
-        reward_profile
+        reward_profile,
+        user_tags
     )
 
-    cursor.execute(create_sql,values)
-    db.commit()
+    try:
+        cursor.execute(create_sql, values)
+        db.commit()
+    except:
+        print("Unable to create user")
+        raise Exception
 
     return username
+
 
 def create_reward_profile():
     """
@@ -45,10 +49,10 @@ def create_reward_profile():
     """
     cursor = db.cursor()
 
-    id = unique_id.gen_id()
+    id = util.gen_id()
     reward_sql = "INSERT INTO reward_profile (reward_id,points) VALUES (%s,%s)"
     values = (id, 0)
-    cursor.execute(reward_sql,values)
+    cursor.execute(reward_sql, values)
     db.commit()
 
     return id
@@ -62,24 +66,27 @@ def delete_user(username):
     """
     cursor = db.cursor()
 
-    sql = "SELECT reward_profile_id, avatar_media_id FROM user WHERE username = %s"
-    cursor.execute(sql, (username,))
+    try:
+        sql = "SELECT reward_profile_id FROM user WHERE username = %s"
+        cursor.execute(sql, (username,))
 
-    reward_profile_id, avatar_media_id = cursor.fetchone()
+        reward_profile_id = cursor.fetchone()[0]
 
-    db.commit()
+        db.commit()
 
-    delete_sql_user = "DELETE FROM user WHERE username = %s "
-    delete_sql_avatar = "DELETE FROM media WHERE media_id = %s "
-    delete_sql_reward = "DELETE FROM reward_profile WHERE reward_id = %s "
+        delete_sql_user = "DELETE FROM user WHERE username = %s "
+        delete_sql_reward = "DELETE FROM reward_profile WHERE reward_id = %s "
 
-    cursor.execute(delete_sql_user, (username,))
-    cursor.execute(delete_sql_avatar, (avatar_media_id,))
-    cursor.execute(delete_sql_reward, (reward_profile_id,))
+        cursor.execute(delete_sql_user, (username,))
+        cursor.execute(delete_sql_reward, (reward_profile_id,))
 
-    db.commit()
+        db.commit()
+    except:
+        print("Unable to delete user")
+        raise Exception
 
     return username
+
 
 def check_password(username, password):
     """
@@ -100,20 +107,21 @@ def check_password(username, password):
         print("Unable to get user information")
         raise Exception
 
-    if actual_password == None: #Unable to get password
+    if actual_password == None:  # Unable to get password
         raise Exception
 
     return True if actual_password[0] == password else False
 
+
 def user_info(username):
     """
-    Retrive information on user: name, birth_date, avatar and tags
+    Retrieve information on user: name, birth_date, avatar and tags
 
     :param username:
     :return: info_user: Tuple of user information
     """
     cursor = db.cursor()
-    user_sql = "SELECT name,birth_date,avatar_media_id,user_tags FROM user WHERE username = %s"
+    user_sql = "SELECT name,birth_date,avatar_path,user_tags FROM user WHERE username = %s"
 
     info_user = ()
     try:
@@ -123,9 +131,23 @@ def user_info(username):
         print("Unable to get user information")
         raise Exception
 
-    return info_user
+    # Convert to dict
+    return_user = {
+        "name": "null",
+        "birth_date": "null",
+        "avatar_path": "null",
+        "user_tags": "null"
+    }
 
-def update_user(username, name=None,avatar=None,reward_points=None,tags=None):
+    index = 0
+    for key in return_user:
+        return_user[key] = info_user[index]
+        index += 1
+
+    return return_user
+
+
+def update_user(username, name=None, avatar_path=None, reward_points=None, tags=None):
     """
     Update user values
     :param username:
@@ -139,7 +161,7 @@ def update_user(username, name=None,avatar=None,reward_points=None,tags=None):
     cursor = db.cursor()
     user_sql = "SELECT reward_profile_id FROM user WHERE username = %s"
 
-    #Get initial information
+    # Get initial information
     try:
         cursor.execute(user_sql, (username,))
         reward_id = cursor.fetchone()[0]
@@ -149,22 +171,21 @@ def update_user(username, name=None,avatar=None,reward_points=None,tags=None):
 
     db.commit()
 
-    #Begin main edit
+    # Begin main edit
     try:
-        if(name != None):
+        if name is not None:
             name_sql = "UPDATE user SET name = %s WHERE username = %s"
-            cursor.execute(name_sql, (name,username))
+            cursor.execute(name_sql, (name, username))
 
-        if(avatar != None):
-            avatar_media_id = database.add_media(avatar)
-            avatar_sql = "UPDATE user SET avatar_media_id = %s WHERE username = %s"
-            cursor.execute(avatar_sql, (avatar_media_id,username))
+        if avatar_path is not None:
+            avatar_sql = "UPDATE user SET avatar_path = %s WHERE username = %s"
+            cursor.execute(avatar_sql, (avatar_path, username))
 
-        if(reward_points != None):
+        if reward_points is not None:
             reward_sql = "UPDATE reward_profile SET points = %s WHERE reward_id = %s"
             cursor.execute(reward_sql, (reward_points, reward_id))
 
-        if (tags != None):
+        if tags is not None:
             tags_sql = "UPDATE user SET user_tags = %s WHERE username = %s"
             cursor.execute(tags_sql, (tags, username))
 
