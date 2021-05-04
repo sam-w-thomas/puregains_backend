@@ -29,7 +29,7 @@ def create_user(name, birth_date, avatar_path, password, user_tags=""):
         birth_date,
         password,
         reward_profile,
-        user_tags
+        user_tags.replace(" ", "") # remove white space in tags
     )
 
     try:
@@ -152,7 +152,7 @@ def update_user(username, name=None, avatar_path=None, reward_points=None, tags=
     Update user values
     :param username:
     :param name:
-    :param avatar:
+    :param avatar_path:
     :param reward_points:
     :param tags:
     :return:
@@ -194,3 +194,33 @@ def update_user(username, name=None, avatar_path=None, reward_points=None, tags=
     except:
         print("Unable to update user information")
         raise Exception
+
+
+def user_reward_points(username):
+    """
+    Retrive a users reward points
+    :param username:
+    :return:
+    """
+
+    if not isinstance(username, str):  # Input checking
+        raise Exception
+
+    try:
+        cursor = db.cursor()
+
+        point_sql = "SELECT reward_profile.points " \
+                    "FROM user INNER JOIN reward_profile " \
+                    "ON user.reward_profile_id=reward_profile.reward_id WHERE user.username=(%s)" \
+
+        cursor.execute(point_sql, (username,))
+
+        points = cursor.fetchone()[0]
+
+        return points
+
+    except:
+        print("Unable to get user reward points")
+        raise Exception
+    finally:
+        db.commit()

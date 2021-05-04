@@ -24,6 +24,10 @@ def create_post(username, message, likes=0, post_tags="", photo_path=None, video
     post_sql = "INSERT INTO post (post_id, message, post_tags, likes, username_id, photo_path, video_path, post_date) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)"
     values = (post_id, message, post_tags, likes, username, photo_path, video_path, date)
 
+    # Check tags are valid
+    post_tags = post_tags[1:] if post_tags.startswith(",") else post_tags
+    post_tags = post_tags[:-1] if post_tags.endswith(",") else post_tags
+
     try:
         cursor.execute(post_sql, values)
         db.commit()

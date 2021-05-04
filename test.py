@@ -41,6 +41,10 @@ import post
 #     )
 # )
 
-print(
-    post.remove_comment("693f712e-ab53-11eb-a370-b0fc36c63f34")
-)
+# print(
+#     post.remove_comment("693f712e-ab53-11eb-a370-b0fc36c63f34")
+# )
+
+# print(
+#     util.tag_validator("hello,,,   test,,,,,")
+# )
