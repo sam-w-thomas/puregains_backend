@@ -77,7 +77,22 @@ def get_post(post_id):
     finally:
         db.commit()
 
-    return result
+    return_post = {
+        "username": None,
+        "message": None,
+        "post_tags": None,
+        "likes": None,
+        "post_date": None,
+        "photo_path": None,
+        "video_path": None
+    }
+
+    index = 0
+    for key in return_post:
+        return_post[key] = result[index]
+        index += 1
+
+    return return_post
 
 
 def update_post(
@@ -124,7 +139,12 @@ def get_post_user(username):
         cursor = db.cursor()
         all_user_sql = "SELECT post_id, username_id, message, post_tags, likes, post_date, photo_path, video_path FROM post WHERE username_id = (%s)"
         cursor.execute(all_user_sql, (username,))
-        all_user_data = cursor.fetchall()
+        posts = cursor.fetchall()
+
+        # format comments to (list of) dict
+        return_posts = util.format_posts(posts)
+
+        return return_posts
 
     except:
         print("Unable to get all posts")
@@ -145,7 +165,7 @@ def get_post_tag_name(
     :return:
     """
 
-    # Conver tags into list
+    # convert tags into list
     valid_posts = set()
 
     try:
@@ -173,13 +193,15 @@ def get_post_tag_name(
             for name_post in name_posts:
                 if name_post is not None:
                     valid_posts.add(name_post)
+
+
     except:
         print("Unable to get posts associated with tags / name")
         raise Exception
     finally:
         db.commit()
 
-    return list(valid_posts)
+    return util.format_posts(list(valid_posts))
 
 
 def add_comment(
@@ -230,3 +252,64 @@ def remove_comment(comment_id):
         db.commit()
 
     return comment_id
+
+
+def get_comments(post_id):
+    """
+    Retrieve comments associated with particular comment
+    :param post_id:
+    :return:
+    """
+
+    try:
+        cursor = db.cursor()
+
+        comment_sql = "SELECT comment_id, message, post_id, username " \
+                      "FROM comment WHERE comment.post_id=(%s)"
+
+        cursor.execute(comment_sql, (post_id,))
+
+        all_comments = cursor.fetchall()
+
+        # format comments to (list of) dict
+        return_comments = list()
+        template_comment = {
+            "comment_id": None,
+            "message": None,
+            "post_id": None,
+            "username": None
+        }
+
+        for comment in all_comments:
+            index = 0
+            for key in template_comment:
+                template_comment[key] = comment[index]
+                index += 1
+
+            return_comments.append(template_comment)
+
+        return return_comments
+
+    except:
+        print("Unable to get comments")
+        raise Exception
+    finally:
+        db.commit()
+
+
+def remove_post_comments(post_id):
+    """
+    Delete all comments associated with post
+    :param post_id:
+    :return:
+    """
+    try:
+        cursor = db.cursor()
+
+        comment_sql = "DELETE FROM comment WHERE post_id=(%s)"
+
+        cursor.execute(comment_sql, (post_id,))
+    except:
+        print("Unable to remove posts associated with " + post_id)
+        raise Exception
+

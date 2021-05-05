@@ -350,8 +350,214 @@ def create_post():
 
     except:
         print("Unable to create post")
-        raise Exception
         response_json = json_dict({"status": "unable to create post"}, indent=4)
+        return Response(response_json, status=401, mimetype='application/json')
+
+
+@app.route('/api/post/<post_id>/likes', methods=['PUT'])
+def update_post_likes(post_id):
+    """
+    Update the likes associated with a post
+    :param post_id:
+    :return:
+    """
+    try:
+        assert post_id == request.view_args['post_id']
+
+        # Get current likes
+        current_likes = post.get_post(post_id)['likes']
+        new_likes = current_likes + 1
+
+        post.update_post(
+            post_id,
+            likes=new_likes
+        )
+
+        response_json = json_dict({"post_likes": new_likes}, indent=4)
+        return Response(response_json, status=201, mimetype='application/json')
+    except:
+        print("Unable to update post likes")
+        response_json = json_dict({"status": "unable to update post likes"}, indent=4)
+        return Response(response_json, status=401, mimetype='application/json')
+
+
+@app.route('/api/post/<post_id>', methods=['GET'])
+def get_post_info(post_id):
+    """
+    Get information post
+    Formatted as specific in API documentation
+    :param post_id:
+    :return:
+    """
+
+    try:
+        assert post_id == request.view_args['post_id']
+
+        post_info = post.get_post(post_id)
+
+        response_json = json_dict(post_info, indent=4, default=str)
+        return Response(response_json, status=201, mimetype='application/json')
+
+    except:
+        print("Unable to get post info")
+        response_json = json_dict({"status": "unable to update post likes"}, indent=4)
+        return Response(response_json, status=401, mimetype='application/json')
+
+
+@app.route('/api/post/<post_id>/comments', methods=['GET'])
+def get_comments(post_id):
+    """
+    Get a (JSON) list of all comments associated with a post
+    :param post_id:
+    :return:
+    """
+
+    try:
+        assert post_id == request.view_args['post_id']
+
+        comments = post.get_comments(
+            post_id
+        )
+
+        response_json = json_dict(comments, indent=4, default=str)
+        return Response(response_json, status=201, mimetype='application/json')
+
+    except:
+        print("Unable to get post info")
+        response_json = json_dict({"status": "unable to update post likes"}, indent=4)
+        return Response(response_json, status=401, mimetype='application/json')
+
+
+@app.route('/api/post/<post_id>/comment', methods=['POST'])
+def add_comment(post_id):
+    """
+    Adds a comment to a post
+    :param post_id:
+    :return:
+    """
+
+    try:
+        assert post_id == request.view_args['post_id']
+
+        try:  # verify required body parameters
+            values = util.json_key(
+                request,
+                {
+                    "username": True,
+                    "message": True
+                }
+            )
+        except KeyError:
+            response_json = json_dict({"status": "missing essential parameters"}, indent=4)
+            return Response(response_json, status=401, mimetype='application/json')
+
+        comment_id = post.add_comment(
+            post_id,
+            values['message'],
+            values['username']
+        )
+
+        response_json = json_dict({"comment_id": comment_id}, indent=4)
+        return Response(response_json, status=201, mimetype='application/json')
+
+    except:
+        print("Unable to add post")
+        response_json = json_dict({"status": "unable to add post"}, indent=4)
+        return Response(response_json, status=401, mimetype='application/json')
+
+
+@app.route('/api/user/<username>/posts', methods=['GET'])
+def user_posts(username):
+    """
+    Retrieves posts associated with a user
+    :param username:
+    :return:
+    """
+
+    try:
+        comments = post.get_post_user(username)
+
+        response_json = json_dict(comments, indent=4, default=str)
+        return Response(response_json, status=201, mimetype='application/json')
+    except:
+        print("Unable to get posts associated with user")
+        response_json = json_dict({"status": "unable to get user posts"}, indent=4)
+        return Response(response_json, status=401, mimetype='application/json')
+
+
+@app.route('/api/posts', methods=['GET'])
+def user_posts_filter():
+    """
+    Retrive posts associated with a (filter) paramters: tags & name
+    :return:
+    """
+
+    try:
+        try:  # verify required body parameters
+            values = util.json_key(
+                request,
+                {
+                    "tags": False,
+                    "name": False
+                }
+            )
+        except KeyError:
+            response_json = json_dict({"status": "missing essential parameters"}, indent=4)
+            return Response(response_json, status=401, mimetype='application/json')
+
+        posts = post.get_post_tag_name(
+            tags=values['tags'],
+            name=values['name']
+        )
+
+        response_json = json_dict(posts, indent=4, default=str)
+        return Response(response_json, status=201, mimetype='application/json')
+    except:
+        print("Unable to get posts associated with tags or name")
+        response_json = json_dict({"status": "unable to get posts"}, indent=4)
+        return Response(response_json, status=401, mimetype='application/json')
+
+@app.route('/api/post/<post_id>', methods=['DELETE'])
+def delete_post(post_id):
+    """
+    Delete post and associated comments
+    :param post_id:
+    :return:
+    """
+
+    try:
+        assert post_id == request.view_args['post_id']
+
+        post.remove_post_comments(post_id)
+        post.remove_post(post_id)
+
+        response_json = json_dict({"post_id":post_id}, indent=4, default=str)
+        return Response(response_json, status=201, mimetype='application/json')
+    except:
+        print("Unable to get delete posts associated with ID " + post_id)
+        response_json = json_dict({"status": "unable to delete posts"}, indent=4)
+        return Response(response_json, status=401, mimetype='application/json')
+
+
+@app.route('/api/comment/<comment_id>', methods=['DELETE'])
+def delete_comment(comment_id):
+    """
+    Delete a single comment
+    :param comment_id:
+    :return:
+    """
+
+    try:
+        assert comment_id == request.view_args['comment_id']
+
+        post.remove_comment(comment_id)
+
+        response_json = json_dict({"comment_id": comment_id}, indent=4, default=str)
+        return Response(response_json, status=201, mimetype='application/json')
+
+    except:
+        print("Unable to delete comment " + comment_id)
+        response_json = json_dict({"status": "unable to delete comment"}, indent=4)
         return Response(response_json, status=401, mimetype='application/json')
 
 if __name__ == '__main__':

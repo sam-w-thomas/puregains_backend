@@ -27,11 +27,11 @@ import post
 
 # print(post.get_post_user("samue.062405"))
 
-# print(
-#     post.get_post_tag_name(
-#         name="thomas"
-#     )
-# )
+print(
+    post.get_post_tag_name(
+        name="Steven"
+    )
+)
 
 # print(
 #     post.add_comment(
@@ -47,4 +47,8 @@ import post
 
 # print(
 #     util.tag_validator("hello,,,   test,,,,,")
+# )
+
+# print(
+#     post.get_post_user("bob_r.2743cd")
 # )

@@ -69,3 +69,33 @@ def tag_validator(tags):
         return tag_validator(tags)  # recursion to get to base case when no tags at start or end
     else:
         return tags
+
+
+def format_posts(posts):
+    """
+    Formats posts into a (list of) dictionary's
+    :param posts:
+    :return:
+    """
+
+    return_posts = list()
+    template_post = {
+        "post_id": None,
+        "username": None,
+        "message": None,
+        "post_tags": None,
+        "likes": None,
+        "post_date": None,
+        "photo_path": None,
+        "video_path": None
+    }
+
+    for post in posts:
+        index = 0
+        for key in template_post:
+            template_post[key] = post[index]
+            index += 1
+
+        return_posts.append(template_post)
+
+    return return_posts
