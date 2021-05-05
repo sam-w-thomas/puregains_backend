@@ -560,5 +560,74 @@ def delete_comment(comment_id):
         response_json = json_dict({"status": "unable to delete comment"}, indent=4)
         return Response(response_json, status=401, mimetype='application/json')
 
+
+@app.route('/api/post/<post_id>/tags', methods=['PUT'])
+def post_tag(post_id):
+    """
+    Update a post tags
+    :param post_id:
+    :return:
+    """
+
+    try:
+        assert post_id == request.view_args['post_id']
+
+        try:
+            tags = request.json['post_tags']
+        except KeyError:
+            response_json = json_dict({"status": "missing required paramters"}, indent=4)
+            return Response(response_json, status=401, mimetype='application/json')
+
+        current_tags = post.get_post(post_id)['post_tags']
+        new_tags = util.tag_validator(current_tags + "," + tags)
+
+        post.update_post(
+            post_id,
+            new_tags
+        )
+
+        response_json = json_dict({"post_tags": new_tags}, indent=4, default=str)
+        return Response(response_json, status=201, mimetype='application/json')
+    except:
+        print("Unable to add tag(s) to " + post_id)
+        response_json = json_dict({"status": "unable to add tag(s)"}, indent=4)
+        return Response(response_json, status=401, mimetype='application/json')
+
+
+@app.route('/api/post/<post_id>/tag', methods=['DELETE'])
+def delete_tag(post_id):
+    """
+    Remove tag from post
+    :param post_id:
+    :return:
+    """
+
+    try:
+
+        try:
+            tag = request.json['post_tag']
+        except KeyError:
+            response_json = json_dict({"status": "missing required paramter"}, indent=4)
+            return Response(response_json, status=401, mimetype='application/json')
+
+        current_tags = post.get_post(post_id)['post_tags']
+
+        new_tags = util.tag_validator(
+            current_tags.replace(tag, "")
+        )
+
+        post.update_post(
+            post_id,
+            post_tags=new_tags
+        )
+
+        response_json = json_dict({"post_tags": new_tags}, indent=4, default=str)
+        return Response(response_json, status=201, mimetype='application/json')
+
+    except:
+        print("Unable to remove tag for " + post_id)
+        response_json = json_dict({"status": "unable to remove tag"}, indent=4)
+        return Response(response_json, status=401, mimetype='application/json')
+
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=5000, debug=True)

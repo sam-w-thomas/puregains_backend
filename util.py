@@ -59,6 +59,8 @@ def tag_validator(tags):
     :return:
     """
 
+    print(tags)
+
     tags = tags.replace(",,", ",")
     tags = tags.replace(" ", "")
 
@@ -68,6 +70,9 @@ def tag_validator(tags):
     if tags.startswith(",") or tags.endswith(",") or ",," in tags or " " in tags:
         return tag_validator(tags)  # recursion to get to base case when no tags at start or end
     else:
+        if len(tags) > 100:
+            print("Tag length of 100 excedded in post")
+            raise Exception
         return tags
 
 
