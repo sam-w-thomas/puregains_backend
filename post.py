@@ -16,6 +16,7 @@ def create_post(username, message, likes=0, post_tags="", photo_path=None, video
     :param likes:
     :return:
     """
+
     cursor = db.cursor()
 
     post_id = util.gen_id()

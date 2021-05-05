@@ -16,12 +16,18 @@ from wtforms import Form, BooleanField, StringField, PasswordField, validators
 
 import verify
 from verify import verify_str, verify_birth_date, verify_str_none
-from varname import nameof
 from json import dumps as json_dict
+import authentication
 
 import util
 
+from authentication import authenticated as auth
+
+
+import jwt
+
 app = Flask(__name__)
+app.config['SECRET_KEY'] = "0fc8f400-ad0c-11eb-aedf-b0fc36c63f34"
 
 
 @app.route('/', methods=['GET', 'POST'])
@@ -31,23 +37,23 @@ def request_connection():
 
 @app.route('/api/user', methods=['POST'])
 def user_create():
-    json_request = request.json
-    name = json_request["name"]
-    birth = json_request["birth_date"]
-    avatar_path = json_request["avatar_path"]
-    password = json_request["password"]
-    user_tags = json_request["user_tags"]
-
-    # Input checking
-    if not verify_str(name) or not verify_birth_date(birth) or not verify_str(avatar_path) or not verify_str(
-            password):
-        return Response("Invalid parameters", status=401, mimetype='application/json')
-
-    if user_tags is None:
-        user_tags = ""
-        return Response("Invalid tags", status=401, mimetype='application/json')
-
     try:
+        json_request = request.json
+        name = json_request["name"]
+        birth = json_request["birth_date"]
+        avatar_path = json_request["avatar_path"]
+        password = json_request["password"]
+        user_tags = json_request["user_tags"]
+
+        # Input checking
+        if not verify_str(name) or not verify_birth_date(birth) or not verify_str(avatar_path) or not verify_str(
+                password):
+            return Response("Invalid parameters", status=401, mimetype='application/json')
+
+        if user_tags is None:
+            user_tags = ""
+            return Response("Invalid tags", status=401, mimetype='application/json')
+
         user_id = user.create_user(
             name,
             datetime.strptime(birth, "%Y/%M/%d").date(),
@@ -66,6 +72,14 @@ def user_create():
 @app.route('/api/user/<username>', methods=['PUT'])
 def user_update(username):
     assert username == request.view_args['username']
+
+    if not auth(  # authenticate user
+        app.config['SECRET_KEY'],
+        request,
+        username
+    ):
+        response_json = flask.json.dumps({"status": "Invalid authentication"})
+        return Response(response_json, status=401, mimetype='application/json')
 
     try:
         json_request = request.json
@@ -628,6 +642,28 @@ def delete_tag(post_id):
         print("Unable to remove tag for " + post_id)
         response_json = json_dict({"status": "unable to remove tag"}, indent=4)
         return Response(response_json, status=401, mimetype='application/json')
+
+
+@app.route('/api/token/<username>', methods=['GET'])
+def get_token(username):
+    """
+    Generate authentication token
+    :param username:
+    :return:
+    """
+    try:
+        assert username == request.view_args['username']
+
+        token = authentication.encode_token(app.config['SECRET_KEY'], username)
+
+        response_json = json_dict({"token": token}, indent=4, default=str)
+        return Response(response_json, status=201, mimetype='application/json')
+
+    except:
+        print("Unable to generate token for " + username)
+        response_json = json_dict({"status": "unable to generate token"}, indent=4)
+        return Response(response_json, status=401, mimetype='application/json')
+
 
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=5000, debug=True)

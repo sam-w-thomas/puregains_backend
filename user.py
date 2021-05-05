@@ -224,3 +224,4 @@ def user_reward_points(username):
         raise Exception
     finally:
         db.commit()
+

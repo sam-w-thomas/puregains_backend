@@ -3,6 +3,7 @@ import datetime
 import util
 import user
 import post
+import authentication
 
 # print(user.create_user(
 #     "Samuel Thomas",
@@ -27,11 +28,11 @@ import post
 
 # print(post.get_post_user("samue.062405"))
 
-print(
-    post.get_post_tag_name(
-        name="Steven"
-    )
-)
+# print(
+#     post.get_post_tag_name(
+#         name="Steven"
+#     )
+# )
 
 # print(
 #     post.add_comment(
@@ -52,3 +53,15 @@ print(
 # print(
 #     post.get_post_user("bob_r.2743cd")
 # )
+
+token = authentication.encode_token(
+    "Test",
+    "paul"
+)
+
+authentication.authenticate(
+    "Test",
+    token,
+    "steve"
+)
+
