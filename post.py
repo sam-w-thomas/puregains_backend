@@ -297,6 +297,41 @@ def get_comments(post_id):
     finally:
         db.commit()
 
+def get_comment(comment_id):
+    """
+    Retrieve comment associated with particular comment_id
+    :param post_id:
+    :return:
+    """
+
+    try:
+        cursor = db.cursor()
+
+        comment_sql = "SELECT comment_id, message, post_id, username " \
+                      "FROM comment WHERE comment.comment_id=(%s)"
+
+        cursor.execute(comment_sql, (comment_id,))
+
+        comment = cursor.fetchone()
+        template_comment = {
+            "comment_id": None,
+            "message": None,
+            "post_id": None,
+            "username": None
+        }
+
+        index = 0
+        for key in template_comment:
+            template_comment[key] = comment[index]
+            index += 1
+
+        return template_comment
+    except:
+        print("Unable to get comments")
+        raise Exception
+    finally:
+        db.commit()
+
 
 def remove_post_comments(post_id):
     """

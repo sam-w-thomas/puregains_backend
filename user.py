@@ -27,7 +27,7 @@ def create_user(name, birth_date, avatar_path, password, user_tags=""):
         name,
         avatar_path,
         birth_date,
-        password,
+        util.hash_password(password),
         reward_profile,
         user_tags.replace(" ", "") # remove white space in tags
     )
@@ -107,6 +107,7 @@ def check_password(username, password):
         print("Unable to get user information")
         raise Exception
 
+    print(actual_password)
     if actual_password == None:  # Unable to get password
         raise Exception
 

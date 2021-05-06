@@ -12,22 +12,26 @@ import post
 import user
 from flask import Flask, request, jsonify
 from flask import json
-from wtforms import Form, BooleanField, StringField, PasswordField, validators
 
 import verify
 from verify import verify_str, verify_birth_date, verify_str_none
 from json import dumps as json_dict
 import authentication
+import hashlib
 
 import util
 
 from authentication import authenticated as auth
-
+from authentication import auth_comment
+from authentication import auth_post
 
 import jwt
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = "0fc8f400-ad0c-11eb-aedf-b0fc36c63f34"
+app.config['SECRET_KEY'] = "0fc8-200-41ayyup-ad0c-11eb-aedf-b0fc36c63f34"
+invalid_auth_code = 401
+success_code = 200
+failure_code = 400
 
 
 @app.route('/', methods=['GET', 'POST'])
@@ -48,11 +52,11 @@ def user_create():
         # Input checking
         if not verify_str(name) or not verify_birth_date(birth) or not verify_str(avatar_path) or not verify_str(
                 password):
-            return Response("Invalid parameters", status=401, mimetype='application/json')
+            return Response("Invalid parameters", status=failure_code, mimetype='application/json')
 
         if user_tags is None:
             user_tags = ""
-            return Response("Invalid tags", status=401, mimetype='application/json')
+            return Response("Invalid tags", status=failure_code, mimetype='application/json')
 
         user_id = user.create_user(
             name,
@@ -63,10 +67,10 @@ def user_create():
         )
 
         response_json = flask.json.dumps({"username": user_id})
-        return Response(response_json, status=201, mimetype='application/json')
+        return Response(response_json, status=success_code, mimetype='application/json')
     except:
         response_json = flask.json.dumps({"username": "INVALID"})
-        return Response(response_json, status=401, mimetype='application/json')
+        return Response(response_json, status=failure_code, mimetype='application/json')
 
 
 @app.route('/api/user/<username>', methods=['PUT'])
@@ -79,7 +83,7 @@ def user_update(username):
         username
     ):
         response_json = flask.json.dumps({"status": "Invalid authentication"})
-        return Response(response_json, status=401, mimetype='application/json')
+        return Response(response_json, status=invalid_auth_code, mimetype='application/json')
 
     try:
         json_request = request.json
@@ -119,12 +123,12 @@ def user_update(username):
         )
 
         response_json = json_dict(return_dict, indent=4)
-        return Response(response_json, status=201, mimetype='application/json')
+        return Response(response_json, status=success_code, mimetype='application/json')
     except Exception as e:
         raise Exception
         print("Unable to update user")
 
-        return Response(response_json, status=401, mimetype='application/json')
+        return Response(response_json, status=failure_code, mimetype='application/json')
 
 
 @app.route('/api/user/<username>', methods=['GET'])
@@ -132,14 +136,14 @@ def get_user(username):
     assert username == request.view_args['username']
 
     if not verify.verify_str(username):
-        return Response("Invalid parameters", status=401, mimetype='application/json')
+        return Response("Invalid parameters", status=failure_code, mimetype='application/json')
 
     response_json = json_dict(
         user.user_info(username),
         indent=4,
         default=str
     )
-    return Response(response_json, status=201, mimetype='application/json')
+    return Response(response_json, status=success_code, mimetype='application/json')
 
 
 @app.route('/api/user/<username>', methods=['DELETE'])
@@ -151,14 +155,22 @@ def delete_user(username):
     """
     assert username == request.view_args['username']
 
+    if not auth(  # authenticate user
+        app.config['SECRET_KEY'],
+        request,
+        username
+    ):
+        response_json = flask.json.dumps({"status": "Invalid authentication"})
+        return Response(response_json, status=invalid_auth_code, mimetype='application/json')
+
     try:
         user.delete_user(username)
         response_json = json_dict({"username": username}, indent=4)
-        return Response(response_json, status=201, mimetype='application/json')
+        return Response(response_json, status=success_code, mimetype='application/json')
     except:
         print("Unable to delete user")
         response_json = json_dict({"status": "INVALID"}, indent=4)
-        return Response(response_json, status=401, mimetype='application/json')
+        return Response(response_json, status=failure_code, mimetype='application/json')
 
 
 @app.route('/api/user/<username>/reward', methods=['GET'])
@@ -174,11 +186,11 @@ def user_reward_get(username):
         points = user.user_reward_points(username)
 
         response_json = json_dict({"reward_points": points}, indent=4)
-        return Response(response_json, status=201, mimetype='application/json')
+        return Response(response_json, status=success_code, mimetype='application/json')
 
     except:
         response_json = json_dict({"status": "INVALID"}, indent=4)
-        return Response(response_json, status=401, mimetype='application/json')
+        return Response(response_json, status=failure_code, mimetype='application/json')
 
 
 @app.route('/api/user/<username>/reward', methods=['PUT'])
@@ -191,22 +203,30 @@ def user_reward_update(username):
     try:
         assert username == request.view_args['username']
 
+        if not auth(  # authenticate user
+                app.config['SECRET_KEY'],
+                request,
+                username
+        ):
+            response_json = flask.json.dumps({"status": "Invalid authentication"})
+            return Response(response_json, status=invalid_auth_code, mimetype='application/json')
+
         json_request = request.json
 
         try:
             points = json_request['reward_points']
         except KeyError:
             response_json = json_dict({"status": "reward_points required paramter"}, indent=4)
-            return Response(response_json, status=401, mimetype='application/json')
+            return Response(response_json, status=failure_code, mimetype='application/json')
 
         user.update_user(username, reward_points=points)
 
         response_json = json_dict({"reward_points": points}, indent=4)
-        return Response(response_json, status=201, mimetype='application/json')
+        return Response(response_json, status=success_code, mimetype='application/json')
 
     except:
         response_json = json_dict({"status": "INVALID"}, indent=4)
-        return Response(response_json, status=401, mimetype='application/json')
+        return Response(response_json, status=failure_code, mimetype='application/json')
 
 
 @app.route('/api/user/<username>/tags', methods=['GET'])
@@ -223,15 +243,15 @@ def user_tag_get(username):
 
         if not isinstance(tags, str):
             response_json = json_dict({"status": "INVALID"}, indent=4)
-            return Response(response_json, status=401, mimetype='application/json')
+            return Response(response_json, status=failure_code, mimetype='application/json')
 
         response_json = json_dict({"user_tags": tags}, indent=4)
-        return Response(response_json, status=201, mimetype='application/json')
+        return Response(response_json, status=success_code, mimetype='application/json')
 
     except:
         print("Unable to get user tags")
         response_json = json_dict({"status": "INVALID"}, indent=4)
-        return Response(response_json, status=401, mimetype='application/json')
+        return Response(response_json, status=failure_code, mimetype='application/json')
 
 
 @app.route('/api/user/<username>/tags', methods=['PUT'])
@@ -245,6 +265,14 @@ def user_tag_add(username):
     try:
         assert username == request.view_args['username']
 
+        if not auth(  # authenticate user
+                app.config['SECRET_KEY'],
+                request,
+                username
+        ):
+            response_json = flask.json.dumps({"status": "Invalid authentication"})
+            return Response(response_json, status=invalid_auth_code, mimetype='application/json')
+
         json_request = request.json
 
         # Check user_tags parameter exists
@@ -253,7 +281,7 @@ def user_tag_add(username):
         except KeyError:
             print("No user_tags paramter")
             response_json = json_dict({"status": "user_tags paramter not found"}, indent=4)
-            return Response(response_json, status=401, mimetype='application/json')
+            return Response(response_json, status=failure_code, mimetype='application/json')
 
         current_tags = user.user_info(username)['user_tags']
 
@@ -263,12 +291,12 @@ def user_tag_add(username):
         user.update_user(username, tags=current_tags)
 
         response_json = json_dict({"user_tags": current_tags}, indent=4)
-        return Response(response_json, status=201, mimetype='application/json')
+        return Response(response_json, status=success_code, mimetype='application/json')
 
     except:
         print("Unable to update (PUT) user tags")
         response_json = json_dict({"status": "INVALID"}, indent=4)
-        return Response(response_json, status=401, mimetype='application/json')
+        return Response(response_json, status=failure_code, mimetype='application/json')
 
 
 @app.route('/api/user/<username>/tags', methods=['DELETE'])
@@ -279,17 +307,33 @@ def user_tags_clear(username):
     :return:
     """
 
+    if not auth(  # authenticate user
+            app.config['SECRET_KEY'],
+            request,
+            username
+    ):
+        response_json = flask.json.dumps({"status": "Invalid authentication"})
+        return Response(response_json, status=invalid_auth_code, mimetype='application/json')
+
+    if not auth(  # authenticate user
+            app.config['SECRET_KEY'],
+            request,
+            username
+    ):
+        response_json = flask.json.dumps({"status": "Invalid authentication"})
+        return Response(response_json, status=failure_code, mimetype='application/json')
+
     try:
         assert username == request.view_args['username']
 
         user.update_user(username, tags="")
 
-        return Response("", status=201, mimetype='application/json')
+        return Response("", status=success_code, mimetype='application/json')
 
     except:
         print("Unable to clear all user tags")
         response_json = json_dict({"status": "INVALID"}, indent=4)
-        return Response(response_json, status=401, mimetype='application/json')
+        return Response(response_json, status=failure_code, mimetype='application/json')
 
 
 @app.route('/api/user/<username>/tag', methods=['DELETE'])
@@ -299,6 +343,14 @@ def user_tag_remove(username):
     :param username:
     :return:
     """
+
+    if not auth(  # authenticate user
+            app.config['SECRET_KEY'],
+            request,
+            username
+    ):
+        response_json = flask.json.dumps({"status": "Invalid authentication"})
+        return Response(response_json, status=invalid_auth_code, mimetype='application/json')
 
     try:
         assert username == request.view_args['username']
@@ -312,7 +364,7 @@ def user_tag_remove(username):
             tags = ""
             print("No user_tags paramter")
             response_json = json_dict({"status": "user_tags paramter not found"}, indent=4)
-            return Response(response_json, status=401, mimetype='application/json')
+            return Response(response_json, status=failure_code, mimetype='application/json')
 
         tags = user.user_info(username)['user_tags']
         tags = util.tag_validator(tags)  # format tags
@@ -320,12 +372,12 @@ def user_tag_remove(username):
         user.update_user(username, tags=tags)
 
         response_json = json_dict({"user_tags": tags}, indent=4)
-        return Response(response_json, status=201, mimetype='application/json')
+        return Response(response_json, status=success_code, mimetype='application/json')
 
     except:
         print("Unable to delete user tag")
         response_json = json_dict({"status": "INVALID"}, indent=4)
-        return Response(response_json, status=401, mimetype='application/json')
+        return Response(response_json, status=failure_code, mimetype='application/json')
 
 
 @app.route('/api/post', methods=['POST'])
@@ -348,7 +400,15 @@ def create_post():
         except KeyError:
             print("Couldnt create post : missing required paramters")
             response_json = json_dict({"status": "missing required parameters"}, indent=4)
-            return Response(response_json, status=401, mimetype='application/json')
+            return Response(response_json, status=failure_code, mimetype='application/json')
+
+        if not auth(  # authenticate user
+                app.config['SECRET_KEY'],
+                request,
+                body_param['username']
+        ):
+            response_json = flask.json.dumps({"status": "Invalid authentication"})
+            return Response(response_json, status=invalid_auth_code, mimetype='application/json')
 
         post_id = post.create_post(
             body_param['username'],
@@ -360,12 +420,13 @@ def create_post():
         )
 
         response_json = json_dict({"post_id": post_id}, indent=4)
-        return Response(response_json, status=201, mimetype='application/json')
+        return Response(response_json, status=success_code, mimetype='application/json')
 
     except:
         print("Unable to create post")
+        raise Exception
         response_json = json_dict({"status": "unable to create post"}, indent=4)
-        return Response(response_json, status=401, mimetype='application/json')
+        return Response(response_json, status=failure_code, mimetype='application/json')
 
 
 @app.route('/api/post/<post_id>/likes', methods=['PUT'])
@@ -378,6 +439,14 @@ def update_post_likes(post_id):
     try:
         assert post_id == request.view_args['post_id']
 
+        if not auth_post(  # authenticate user
+                app.config['SECRET_KEY'],
+                request,
+                post_id
+        ):
+            response_json = flask.json.dumps({"status": "Invalid authentication"})
+            return Response(response_json, status=invalid_auth_code, mimetype='application/json')
+
         # Get current likes
         current_likes = post.get_post(post_id)['likes']
         new_likes = current_likes + 1
@@ -388,11 +457,11 @@ def update_post_likes(post_id):
         )
 
         response_json = json_dict({"post_likes": new_likes}, indent=4)
-        return Response(response_json, status=201, mimetype='application/json')
+        return Response(response_json, status=success_code, mimetype='application/json')
     except:
         print("Unable to update post likes")
         response_json = json_dict({"status": "unable to update post likes"}, indent=4)
-        return Response(response_json, status=401, mimetype='application/json')
+        return Response(response_json, status=failure_code, mimetype='application/json')
 
 
 @app.route('/api/post/<post_id>', methods=['GET'])
@@ -410,12 +479,12 @@ def get_post_info(post_id):
         post_info = post.get_post(post_id)
 
         response_json = json_dict(post_info, indent=4, default=str)
-        return Response(response_json, status=201, mimetype='application/json')
+        return Response(response_json, status=success_code, mimetype='application/json')
 
     except:
         print("Unable to get post info")
         response_json = json_dict({"status": "unable to update post likes"}, indent=4)
-        return Response(response_json, status=401, mimetype='application/json')
+        return Response(response_json, status=failure_code, mimetype='application/json')
 
 
 @app.route('/api/post/<post_id>/comments', methods=['GET'])
@@ -434,12 +503,12 @@ def get_comments(post_id):
         )
 
         response_json = json_dict(comments, indent=4, default=str)
-        return Response(response_json, status=201, mimetype='application/json')
+        return Response(response_json, status=success_code, mimetype='application/json')
 
     except:
         print("Unable to get post info")
         response_json = json_dict({"status": "unable to update post likes"}, indent=4)
-        return Response(response_json, status=401, mimetype='application/json')
+        return Response(response_json, status=failure_code, mimetype='application/json')
 
 
 @app.route('/api/post/<post_id>/comment', methods=['POST'])
@@ -453,6 +522,15 @@ def add_comment(post_id):
     try:
         assert post_id == request.view_args['post_id']
 
+        print(app.config['SECRET_KEY'])
+        if not auth_post(  # authenticate user
+                app.config['SECRET_KEY'],
+                request,
+                post_id
+        ):
+            response_json = flask.json.dumps({"status": "Invalid authentication"})
+            return Response(response_json, status=invalid_auth_code, mimetype='application/json')
+
         try:  # verify required body parameters
             values = util.json_key(
                 request,
@@ -463,7 +541,7 @@ def add_comment(post_id):
             )
         except KeyError:
             response_json = json_dict({"status": "missing essential parameters"}, indent=4)
-            return Response(response_json, status=401, mimetype='application/json')
+            return Response(response_json, status=failure_code, mimetype='application/json')
 
         comment_id = post.add_comment(
             post_id,
@@ -472,12 +550,12 @@ def add_comment(post_id):
         )
 
         response_json = json_dict({"comment_id": comment_id}, indent=4)
-        return Response(response_json, status=201, mimetype='application/json')
+        return Response(response_json, status=success_code, mimetype='application/json')
 
     except:
         print("Unable to add post")
         response_json = json_dict({"status": "unable to add post"}, indent=4)
-        return Response(response_json, status=401, mimetype='application/json')
+        return Response(response_json, status=failure_code, mimetype='application/json')
 
 
 @app.route('/api/user/<username>/posts', methods=['GET'])
@@ -492,11 +570,11 @@ def user_posts(username):
         comments = post.get_post_user(username)
 
         response_json = json_dict(comments, indent=4, default=str)
-        return Response(response_json, status=201, mimetype='application/json')
+        return Response(response_json, status=success_code, mimetype='application/json')
     except:
         print("Unable to get posts associated with user")
         response_json = json_dict({"status": "unable to get user posts"}, indent=4)
-        return Response(response_json, status=401, mimetype='application/json')
+        return Response(response_json, status=failure_code, mimetype='application/json')
 
 
 @app.route('/api/posts', methods=['GET'])
@@ -517,7 +595,7 @@ def user_posts_filter():
             )
         except KeyError:
             response_json = json_dict({"status": "missing essential parameters"}, indent=4)
-            return Response(response_json, status=401, mimetype='application/json')
+            return Response(response_json, status=failure_code, mimetype='application/json')
 
         posts = post.get_post_tag_name(
             tags=values['tags'],
@@ -525,11 +603,11 @@ def user_posts_filter():
         )
 
         response_json = json_dict(posts, indent=4, default=str)
-        return Response(response_json, status=201, mimetype='application/json')
+        return Response(response_json, status=success_code, mimetype='application/json')
     except:
         print("Unable to get posts associated with tags or name")
         response_json = json_dict({"status": "unable to get posts"}, indent=4)
-        return Response(response_json, status=401, mimetype='application/json')
+        return Response(response_json, status=failure_code, mimetype='application/json')
 
 @app.route('/api/post/<post_id>', methods=['DELETE'])
 def delete_post(post_id):
@@ -542,15 +620,23 @@ def delete_post(post_id):
     try:
         assert post_id == request.view_args['post_id']
 
+        if not auth_post(  # authenticate user
+                app.config['SECRET_KEY'],
+                request,
+                post_id
+        ):
+            response_json = flask.json.dumps({"status": "Invalid authentication"})
+            return Response(response_json, status=invalid_auth_code, mimetype='application/json')
+
         post.remove_post_comments(post_id)
         post.remove_post(post_id)
 
         response_json = json_dict({"post_id":post_id}, indent=4, default=str)
-        return Response(response_json, status=201, mimetype='application/json')
+        return Response(response_json, status=success_code, mimetype='application/json')
     except:
         print("Unable to get delete posts associated with ID " + post_id)
         response_json = json_dict({"status": "unable to delete posts"}, indent=4)
-        return Response(response_json, status=401, mimetype='application/json')
+        return Response(response_json, status=failure_code, mimetype='application/json')
 
 
 @app.route('/api/comment/<comment_id>', methods=['DELETE'])
@@ -564,15 +650,23 @@ def delete_comment(comment_id):
     try:
         assert comment_id == request.view_args['comment_id']
 
+        if not auth_comment(  # authenticate user
+                app.config['SECRET_KEY'],
+                request,
+                comment_id
+        ):
+            response_json = flask.json.dumps({"status": "Invalid authentication"})
+            return Response(response_json, status=invalid_auth_code, mimetype='application/json')
+
         post.remove_comment(comment_id)
 
         response_json = json_dict({"comment_id": comment_id}, indent=4, default=str)
-        return Response(response_json, status=201, mimetype='application/json')
+        return Response(response_json, status=success_code, mimetype='application/json')
 
     except:
         print("Unable to delete comment " + comment_id)
         response_json = json_dict({"status": "unable to delete comment"}, indent=4)
-        return Response(response_json, status=401, mimetype='application/json')
+        return Response(response_json, status=failure_code, mimetype='application/json')
 
 
 @app.route('/api/post/<post_id>/tags', methods=['PUT'])
@@ -586,11 +680,19 @@ def post_tag(post_id):
     try:
         assert post_id == request.view_args['post_id']
 
+        if not auth_post(  # authenticate user
+                app.config['SECRET_KEY'],
+                request,
+                post_id
+        ):
+            response_json = flask.json.dumps({"status": "Invalid authentication"})
+            return Response(response_json, status=invalid_auth_code, mimetype='application/json')
+
         try:
             tags = request.json['post_tags']
         except KeyError:
             response_json = json_dict({"status": "missing required paramters"}, indent=4)
-            return Response(response_json, status=401, mimetype='application/json')
+            return Response(response_json, status=failure_code, mimetype='application/json')
 
         current_tags = post.get_post(post_id)['post_tags']
         new_tags = util.tag_validator(current_tags + "," + tags)
@@ -601,11 +703,11 @@ def post_tag(post_id):
         )
 
         response_json = json_dict({"post_tags": new_tags}, indent=4, default=str)
-        return Response(response_json, status=201, mimetype='application/json')
+        return Response(response_json, status=success_code, mimetype='application/json')
     except:
         print("Unable to add tag(s) to " + post_id)
         response_json = json_dict({"status": "unable to add tag(s)"}, indent=4)
-        return Response(response_json, status=401, mimetype='application/json')
+        return Response(response_json, status=failure_code, mimetype='application/json')
 
 
 @app.route('/api/post/<post_id>/tag', methods=['DELETE'])
@@ -618,11 +720,19 @@ def delete_tag(post_id):
 
     try:
 
+        if not auth_post(  # authenticate user
+                app.config['SECRET_KEY'],
+                request,
+                post_id
+        ):
+            response_json = flask.json.dumps({"status": "Invalid authentication"})
+            return Response(response_json, status=invalid_auth_code, mimetype='application/json')
+
         try:
             tag = request.json['post_tag']
         except KeyError:
             response_json = json_dict({"status": "missing required paramter"}, indent=4)
-            return Response(response_json, status=401, mimetype='application/json')
+            return Response(response_json, status=failure_code, mimetype='application/json')
 
         current_tags = post.get_post(post_id)['post_tags']
 
@@ -636,33 +746,48 @@ def delete_tag(post_id):
         )
 
         response_json = json_dict({"post_tags": new_tags}, indent=4, default=str)
-        return Response(response_json, status=201, mimetype='application/json')
+        return Response(response_json, status=success_code, mimetype='application/json')
 
     except:
         print("Unable to remove tag for " + post_id)
         response_json = json_dict({"status": "unable to remove tag"}, indent=4)
-        return Response(response_json, status=401, mimetype='application/json')
+        return Response(response_json, status=failure_code, mimetype='application/json')
 
 
 @app.route('/api/token/<username>', methods=['GET'])
 def get_token(username):
     """
-    Generate authentication token
+    Generate authentication token, checks password
     :param username:
     :return:
     """
     try:
         assert username == request.view_args['username']
 
+        try:
+            password = request.json['password']
+        except KeyError:
+            response_json = json_dict({"status": "missing required paramter"}, indent=4)
+            return Response(response_json, status=failure_code, mimetype='application/json')
+
+        # hash password
+        hashed_password = util.hash_password(password)
+        print(hashed_password)
+
+        # check password
+        if not user.check_password(username, hashed_password):
+            response_json = json_dict({"status": "incorrect password provided"}, indent=4)
+            return Response(response_json, status=401, mimetype='application/json')
+
         token = authentication.encode_token(app.config['SECRET_KEY'], username)
 
         response_json = json_dict({"token": token}, indent=4, default=str)
-        return Response(response_json, status=201, mimetype='application/json')
+        return Response(response_json, status=success_code, mimetype='application/json')
 
     except:
         print("Unable to generate token for " + username)
         response_json = json_dict({"status": "unable to generate token"}, indent=4)
-        return Response(response_json, status=401, mimetype='application/json')
+        return Response(response_json, status=failure_code, mimetype='application/json')
 
 
 if __name__ == '__main__':

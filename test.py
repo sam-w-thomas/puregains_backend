@@ -54,14 +54,15 @@ import authentication
 #     post.get_post_user("bob_r.2743cd")
 # )
 
-token = authentication.encode_token(
-    "Test",
-    "paul"
-)
+# token = authentication.encode_token(
+#     "Test",
+#     "paul"
+# )
+#
+# authentication.authenticate(
+#     "Test",
+#     token,
+#     "steve"
+# )
 
-authentication.authenticate(
-    "Test",
-    token,
-    "steve"
-)
-
+user.update_user()

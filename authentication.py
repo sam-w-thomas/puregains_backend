@@ -2,7 +2,7 @@ import jwt
 import datetime
 from json import dumps as json_dict
 from flask import Response
-
+import post
 
 def encode_token(key, username):
     """
@@ -47,7 +47,10 @@ def authenticated(key, request, username):
     else:
         return False
 
-    token_username = decode_token(key, token)['username']
+    try:
+        token_username = decode_token(key, token)['username']
+    except:
+        return False
 
     if token_username != username:
         return False
@@ -75,3 +78,25 @@ def decode_token(key, token):
 
     except:
         raise Exception
+
+def auth_post(key, request, post_id):
+    """
+    Authenticate a post, ie user editing post
+    :param post_id:
+    :return:
+    """
+
+    username = post.get_post(post_id)['username']
+
+    return authenticated(key, request, username)
+
+def auth_comment(key, request, comment_id):
+    """
+    Authenticate a comment, ie user editing post
+    :param comment_id:
+    :return:
+    """
+
+    username = post.get_comment(comment_id)['username']
+
+    return authenticated(key, request, username)
