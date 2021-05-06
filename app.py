@@ -670,7 +670,7 @@ def delete_comment(comment_id):
 
 
 @app.route('/api/post/<post_id>/tags', methods=['PUT'])
-def post_tag(post_id):
+def post_tags(post_id):
     """
     Update a post tags
     :param post_id:
