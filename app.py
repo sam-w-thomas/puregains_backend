@@ -47,7 +47,12 @@ def user_create():
         birth = json_request["birth_date"]
         avatar_path = json_request["avatar_path"]
         password = json_request["password"]
-        user_tags = json_request["user_tags"]
+
+        try:
+            user_tags = json_request["user_tags"]
+        except KeyError:
+            user_tags = ""
+
 
         # Input checking
         if not verify_str(name) or not verify_birth_date(birth) or not verify_str(avatar_path) or not verify_str(
@@ -66,9 +71,12 @@ def user_create():
             user_tags
         )
 
+        print("user created " + user_id)
+
         response_json = flask.json.dumps({"username": user_id})
         return Response(response_json, status=success_code, mimetype='application/json')
     except:
+        raise Exception
         response_json = flask.json.dumps({"username": "INVALID"})
         return Response(response_json, status=failure_code, mimetype='application/json')
 
@@ -424,7 +432,6 @@ def create_post():
 
     except:
         print("Unable to create post")
-        raise Exception
         response_json = json_dict({"status": "unable to create post"}, indent=4)
         return Response(response_json, status=failure_code, mimetype='application/json')
 
@@ -567,12 +574,13 @@ def user_posts(username):
     """
 
     try:
-        comments = post.get_post_user(username)
+        posts = post.get_post_user(username)
 
-        response_json = json_dict(comments, indent=4, default=str)
+        response_json = json_dict(posts, indent=4, default=str)
         return Response(response_json, status=success_code, mimetype='application/json')
     except:
         print("Unable to get posts associated with user")
+        raise Exception
         response_json = json_dict({"status": "unable to get user posts"}, indent=4)
         return Response(response_json, status=failure_code, mimetype='application/json')
 
@@ -581,6 +589,7 @@ def user_posts(username):
 def user_posts_filter():
     """
     Retrive posts associated with a (filter) paramters: tags & name
+    If no paramters, returns all posts
     :return:
     """
 
@@ -597,10 +606,13 @@ def user_posts_filter():
             response_json = json_dict({"status": "missing essential parameters"}, indent=4)
             return Response(response_json, status=failure_code, mimetype='application/json')
 
-        posts = post.get_post_tag_name(
-            tags=values['tags'],
-            name=values['name']
-        )
+        if values['tags'] is None and values['name'] is None:
+            posts = post.get_posts()
+        else:
+            posts = post.get_post_tag_name(
+                tags=values['tags'],
+                name=values['name']
+            )
 
         response_json = json_dict(posts, indent=4, default=str)
         return Response(response_json, status=success_code, mimetype='application/json')
@@ -764,10 +776,12 @@ def get_token(username):
     try:
         assert username == request.view_args['username']
 
+        print(request.headers)
+
         try:
-            password = request.json['password']
+            password = request.headers.get("Password")
         except KeyError:
-            response_json = json_dict({"status": "missing required paramter"}, indent=4)
+            response_json = json_dict({"status": "missing required header paramter"}, indent=4)
             return Response(response_json, status=failure_code, mimetype='application/json')
 
         # hash password
@@ -785,6 +799,7 @@ def get_token(username):
         return Response(response_json, status=success_code, mimetype='application/json')
 
     except:
+        raise Exception
         print("Unable to generate token for " + username)
         response_json = json_dict({"status": "unable to generate token"}, indent=4)
         return Response(response_json, status=failure_code, mimetype='application/json')

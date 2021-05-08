@@ -39,14 +39,26 @@ def json_key(request, values):
     request_json = request.json
 
     return_dict = dict()
-    for key, value in values.items():
-        try:
-            return_dict[key] = request_json[key]
-        except KeyError:
-            if value is True:
-                raise KeyError
-            else:
-                return_dict[key] = None
+    if request.method == 'GET':
+        headers = request.headers
+
+        for key, value in values.items():
+            try:
+                return_dict[key] = headers[key]
+            except KeyError:
+                if value is True:
+                    raise KeyError
+                else:
+                    return_dict[key] = None
+    else:
+        for key, value in values.items():
+            try:
+                return_dict[key] = request_json[key]
+            except KeyError:
+                if value is True:
+                    raise KeyError
+                else:
+                    return_dict[key] = None
 
     return return_dict
 
@@ -92,7 +104,10 @@ def format_posts(posts):
         "likes": None,
         "post_date": None,
         "photo_path": None,
-        "video_path": None
+        "video_path": None,
+        "name": None,
+        "avatar_path" : None
+
     }
 
     for post in posts:
@@ -101,6 +116,6 @@ def format_posts(posts):
             template_post[key] = post[index]
             index += 1
 
-        return_posts.append(template_post)
+        return_posts.append(template_post.copy()) # copy required as otherwise you just overwrite the original reference
 
     return return_posts

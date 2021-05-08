@@ -138,7 +138,10 @@ def get_post_user(username):
     all_user_data = ()
     try:
         cursor = db.cursor()
-        all_user_sql = "SELECT post_id, username_id, message, post_tags, likes, post_date, photo_path, video_path FROM post WHERE username_id = (%s)"
+        all_user_sql = "SELECT post.post_id, post.username_id, post.message, post.post_tags, post.likes, post.post_date, post.photo_path, post.video_path, user.name, user.avatar_path " \
+                       "FROM post INNER JOIN user " \
+                       "ON post.username_id=user.username " \
+                       "WHERE username_id = (%s)"
         cursor.execute(all_user_sql, (username,))
         posts = cursor.fetchall()
 
@@ -175,7 +178,10 @@ def get_post_tag_name(
         if tags is not None:
             tags = tags.split(",")
             for tag in tags:
-                tag_sql = "SELECT post_id, username_id, message, post_tags, likes, post_date, photo_path, video_path FROM post WHERE post_tags LIKE CONCAT('%', %s,'%') "
+                tag_sql = "SELECT post.post_id, post.username_id, post.message, post.post_tags, post.likes, post.post_date, post.photo_path, post.video_path, user.name, user.avatar_path " \
+                          "FROM post INNER JOIN user " \
+                          "ON post.username_id==user.username" \
+                          "WHERE post_tags LIKE CONCAT('%', %s,'%') "
                 cursor.execute(tag_sql, (tag,))
 
                 tag_posts = cursor.fetchall()
@@ -185,7 +191,7 @@ def get_post_tag_name(
                         valid_posts.add(tag_post)
 
         if name is not None:
-            name_sql = "SELECT post.post_id, post.username_id, post.message, post.post_tags, post.likes, post.post_date, post.photo_path, post.video_path, user.username " \
+            name_sql = "SELECT post.post_id, post.username_id, post.message, post.post_tags, post.likes, post.post_date, post.photo_path, post.video_path, user.name, user.avatar_path  " \
                        "FROM post INNER JOIN user ON post.username_id=user.username " \
                        "WHERE user.name LIKE CONCAT('%', %s,'%')"
 
@@ -204,6 +210,35 @@ def get_post_tag_name(
 
     return util.format_posts(list(valid_posts))
 
+
+def get_posts():
+    """
+    Get all posts
+    :return:
+    """
+
+    post_sql = "SELECT post.post_id, post.username_id, post.message, post.post_tags, post.likes, post.post_date, post.photo_path, post.video_path, user.name, user.avatar_path " \
+               "FROM post INNER JOIN user " \
+               "ON post.username_id=user.username"
+    valid_posts = set()
+
+    try:
+        cursor = db.cursor()
+        cursor.execute(post_sql)
+
+        posts = cursor.fetchall()
+        # Add valid posts into valid_posts
+        for post in posts:
+            if post is not None:
+                valid_posts.add(post)
+
+        return util.format_posts(list(valid_posts))
+
+    except:
+        print("Unable to get all posts")
+        raise Exception
+    finally:
+        db.commit()
 
 def add_comment(
         post_id,
