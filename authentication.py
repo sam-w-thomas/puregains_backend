@@ -87,6 +87,8 @@ def auth_post(key, request, post_id):
 
     username = post.get_post(post_id)['username']
 
+    print(username)
+
     return authenticated(key, request, username)
 
 def auth_comment(key, request, comment_id):

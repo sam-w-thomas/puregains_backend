@@ -446,14 +446,6 @@ def update_post_likes(post_id):
     try:
         assert post_id == request.view_args['post_id']
 
-        if not auth_post(  # authenticate user
-                app.config['SECRET_KEY'],
-                request,
-                post_id
-        ):
-            response_json = flask.json.dumps({"status": "Invalid authentication"})
-            return Response(response_json, status=invalid_auth_code, mimetype='application/json')
-
         # Get current likes
         current_likes = post.get_post(post_id)['likes']
         new_likes = current_likes + 1
