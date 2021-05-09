@@ -66,7 +66,9 @@ def get_post(post_id):
     """
     cursor = db.cursor()
 
-    post_sql = "SELECT username_id, message, post_tags, likes, post_date, photo_path, video_path FROM post WHERE post_id = (%s)"
+    post_sql = "SELECT username_id, message, post_tags, likes, post_date, photo_path, video_path " \
+               "FROM post " \
+               "WHERE post_id = (%s)"
 
     result = ()
     try:
@@ -142,6 +144,7 @@ def get_post_user(username):
                        "FROM post INNER JOIN user " \
                        "ON post.username_id=user.username " \
                        "WHERE username_id = (%s)"
+
         cursor.execute(all_user_sql, (username,))
         posts = cursor.fetchall()
 
@@ -181,7 +184,7 @@ def get_post_tag_name(
                 tag_sql = "SELECT post.post_id, post.username_id, post.message, post.post_tags, post.likes, post.post_date, post.photo_path, post.video_path, user.name, user.avatar_path " \
                           "FROM post INNER JOIN user " \
                           "ON post.username_id==user.username" \
-                          "WHERE post_tags LIKE CONCAT('%', %s,'%') "
+                          "WHERE post_tags LIKE CONCAT('%', %s,'%')"
                 cursor.execute(tag_sql, (tag,))
 
                 tag_posts = cursor.fetchall()

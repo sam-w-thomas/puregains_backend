@@ -6,7 +6,7 @@ import numpy
 db = database.gains_db
 
 
-def create_user(name, birth_date, avatar_path, password, user_tags=""):
+def create_user(name, birth_date, avatar_path, password,desc=None, user_tags=""):
     """
     Create a user
     :param user_tags:
@@ -21,7 +21,7 @@ def create_user(name, birth_date, avatar_path, password, user_tags=""):
     username = util.gen_username(name)
     reward_profile = create_reward_profile()
 
-    create_sql = "INSERT INTO user (username,name,avatar_path,birth_date,password,reward_profile_id,user_tags) VALUES (%s,%s,%s,%s,%s,%s,%s)"
+    create_sql = "INSERT INTO user (username,name,avatar_path,birth_date,password,reward_profile_id,user_tags,description) VALUES (%s,%s,%s,%s,%s,%s,%s,%s)"
     values = (
         username,
         name,
@@ -29,7 +29,8 @@ def create_user(name, birth_date, avatar_path, password, user_tags=""):
         birth_date,
         util.hash_password(password),
         reward_profile,
-        user_tags.replace(" ", "") # remove white space in tags
+        user_tags.replace(" ", ""), # remove white space in tags
+        desc
     )
 
     try:
@@ -122,7 +123,7 @@ def user_info(username):
     :return: info_user: Tuple of user information
     """
     cursor = db.cursor()
-    user_sql = "SELECT name,birth_date,avatar_path,user_tags FROM user WHERE username = %s"
+    user_sql = "SELECT name,birth_date,avatar_path,user_tags,description FROM user WHERE username = %s"
 
     info_user = ()
     try:
@@ -137,7 +138,8 @@ def user_info(username):
         "name": "null",
         "birth_date": "null",
         "avatar_path": "null",
-        "user_tags": "null"
+        "user_tags": "null",
+        "description" : "null"
     }
 
     index = 0
@@ -148,9 +150,10 @@ def user_info(username):
     return return_user
 
 
-def update_user(username, name=None, avatar_path=None, reward_points=None, tags=None):
+def update_user(username, name=None, avatar_path=None, reward_points=None, tags=None, desc=None):
     """
     Update user values
+    :param desc:
     :param username:
     :param name:
     :param avatar_path:
@@ -189,6 +192,10 @@ def update_user(username, name=None, avatar_path=None, reward_points=None, tags=
         if tags is not None:
             tags_sql = "UPDATE user SET user_tags = %s WHERE username = %s"
             cursor.execute(tags_sql, (tags, username))
+
+        if desc is not None:
+            tags_sql = "UPDATE user SET description = %s WHERE username = %s"
+            cursor.execute(tags_sql, (desc, username))
 
         db.commit()
 

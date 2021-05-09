@@ -1,7 +1,8 @@
 import uuid
 import hashlib
 import os
-
+import datetime
+from operator import itemgetter
 
 def gen_id():
     """
@@ -118,4 +119,5 @@ def format_posts(posts):
 
         return_posts.append(template_post.copy()) # copy required as otherwise you just overwrite the original reference
 
+    return_posts.sort(key=lambda post_item:str(post_item['post_date']), reverse=True)
     return return_posts

@@ -53,6 +53,10 @@ def user_create():
         except KeyError:
             user_tags = ""
 
+        try:
+            desc = json_request["description"]
+        except KeyError:
+            desc = ""
 
         # Input checking
         if not verify_str(name) or not verify_birth_date(birth) or not verify_str(avatar_path) or not verify_str(
@@ -68,6 +72,7 @@ def user_create():
             datetime.strptime(birth, "%Y/%M/%d").date(),
             avatar_path,
             password,
+            desc,
             user_tags
         )
 
@@ -96,41 +101,31 @@ def user_update(username):
     try:
         json_request = request.json
 
-        # Handle optional paramters and return dict
-        return_dict = dict()
-        try:
-            name = json_request["name"]
-            return_dict["name"] = name
-        except KeyError:
-            name = None
+        print(json_request)
 
-        try:
-            avatar_path = json_request["avatar_path"]
-            return_dict["avatar_path"] = avatar_path
-        except KeyError:
-            avatar_path = None
+        values = util.json_key(
+            request,
+            {
+                "name" : False,
+                "avatar_path" : False,
+                "reward_points" : False,
+                "tags" : False,
+                "desc" : False
+            }
+        )
 
-        try:
-            reward_points = json_request["reward_points"]
-            return_dict["reward_points"] = reward_points
-        except KeyError:
-            reward_points = None
-
-        try:
-            tags = json_request["tags"]
-            return_dict["tags"] = tags
-        except KeyError:
-            tags = None
+        print(values['name'])
 
         user.update_user(
             username,
-            name,
-            avatar_path,
-            reward_points,
-            tags
+            values['name'],
+            values['avatar_path'],
+            values['reward_points'],
+            values['tags'],
+            values['desc']
         )
 
-        response_json = json_dict(return_dict, indent=4)
+        response_json = json_dict(values, indent=4)
         return Response(response_json, status=success_code, mimetype='application/json')
     except Exception as e:
         raise Exception
@@ -609,6 +604,7 @@ def user_posts_filter():
         response_json = json_dict(posts, indent=4, default=str)
         return Response(response_json, status=success_code, mimetype='application/json')
     except:
+        raise Exception
         print("Unable to get posts associated with tags or name")
         response_json = json_dict({"status": "unable to get posts"}, indent=4)
         return Response(response_json, status=failure_code, mimetype='application/json')
