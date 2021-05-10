@@ -182,8 +182,7 @@ def get_post_tag_name(
             tags = tags.split(",")
             for tag in tags:
                 tag_sql = "SELECT post.post_id, post.username_id, post.message, post.post_tags, post.likes, post.post_date, post.photo_path, post.video_path, user.name, user.avatar_path " \
-                          "FROM post INNER JOIN user " \
-                          "ON post.username_id==user.username" \
+                          "FROM post INNER JOIN user ON post.username_id=user.username " \
                           "WHERE post_tags LIKE CONCAT('%', %s,'%')"
                 cursor.execute(tag_sql, (tag,))
 
