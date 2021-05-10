@@ -8,7 +8,8 @@ def verify_birth_date(date):
     :return:
     """
     valid = True
-    if not re.match('\d+/\d+/\d+', date):
+    print(date)
+    if not re.match('%Y/%M/%d', date):
         valid = False
 
     return valid
