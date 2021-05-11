@@ -150,9 +150,10 @@ def user_info(username):
     return return_user
 
 
-def update_user(username, name=None, avatar_path=None, reward_points=None, tags=None, desc=None):
+def update_user(username, name=None, avatar_path=None, reward_points=None, tags=None, desc=None, credit=None, premium=None):
     """
     Update user values
+    :param credit:
     :param desc:
     :param username:
     :param name:
@@ -180,6 +181,14 @@ def update_user(username, name=None, avatar_path=None, reward_points=None, tags=
         if name is not None:
             name_sql = "UPDATE user SET name = %s WHERE username = %s"
             cursor.execute(name_sql, (name, username))
+
+        if premium is not None:
+            name_sql = "UPDATE user SET premium = %s WHERE username = %s"
+            cursor.execute(name_sql, (premium, username))
+
+        if credit is not None:
+            credit_sql = "UPDATE user SET credit = %s WHERE username = %s"
+            cursor.execute(credit_sql, (credit, username))
 
         if avatar_path is not None:
             avatar_sql = "UPDATE user SET avatar_path = %s WHERE username = %s"
@@ -226,10 +235,93 @@ def user_reward_points(username):
         points = cursor.fetchone()[0]
 
         return points
-
     except:
         print("Unable to get user reward points")
         raise Exception
     finally:
         db.commit()
 
+
+def user_type(username):
+    """
+    Retrive a users type (free or premium)
+    :param username:
+    :return:
+    """
+
+    if not isinstance(username, str):  # Input checking
+        raise Exception
+
+    try:
+        cursor = db.cursor()
+
+        type_sql = "SELECT user.premium " \
+                    "FROM user " \
+                    "WHERE user.username=(%s)"
+
+        cursor.execute(type_sql, (username,))
+
+        type = cursor.fetchone()[0]
+
+        return type
+    except:
+        print("Unable to get user reward points")
+        raise Exception
+    finally:
+        db.commit()
+
+
+def user_credit_change(
+        username,
+        credit
+):
+    """
+    Changes a users credit amount
+    :param username:
+    :return:
+    """
+
+    if not isinstance(username, str):  # Input checking
+        raise Exception
+
+    try:
+        cursor = db.cursor()
+
+        credit_sql = "UPDATE user " \
+                    "SET user.credit = (%s) " \
+                    "WHERE user.username=(%s)"
+
+        cursor.execute(credit_sql, (credit,username))
+    except:
+        print("Unable to get user reward points")
+        raise Exception
+    finally:
+        db.commit()
+
+def user_credit_amount(username):
+    """
+    Retrive a users reward points
+    :param username:
+    :return:
+    """
+
+    if not isinstance(username, str):  # Input checking
+        raise Exception
+
+    try:
+        cursor = db.cursor()
+
+        point_sql = "SELECT user.credit " \
+                    "FROM user " \
+                    "WHERE user.username=(%s)" \
+
+        cursor.execute(point_sql, (username,))
+
+        credit = cursor.fetchone()[0]
+
+        return credit
+    except:
+        print("Unable to get user reward points")
+        raise Exception
+    finally:
+        db.commit()

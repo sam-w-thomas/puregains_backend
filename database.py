@@ -5,7 +5,7 @@ import time
 gains_db = mysql.connector.connect(
     host="localhost",
     user="root",
-    password="YES",
+    password="toor",
     database="mydb"
 )
 

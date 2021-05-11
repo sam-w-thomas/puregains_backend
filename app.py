@@ -61,6 +61,10 @@ def user_create():
         # Input checking
         if not verify_str(name) or not verify_birth_date(birth) or not verify_str(avatar_path) or not verify_str(
                 password):
+            print(verify_str(name))
+            print(verify_birth_date(birth))
+            print(verify_str(avatar_path))
+            print(verify_str(password))
             return Response("Invalid parameters", status=failure_code, mimetype='application/json')
 
         if user_tags is None:
@@ -109,12 +113,11 @@ def user_update(username):
                 "name" : False,
                 "avatar_path" : False,
                 "reward_points" : False,
+                "credit" : False,
                 "tags" : False,
                 "desc" : False
             }
         )
-
-        print(values['name'])
 
         user.update_user(
             username,
@@ -122,7 +125,8 @@ def user_update(username):
             values['avatar_path'],
             values['reward_points'],
             values['tags'],
-            values['desc']
+            values['desc'],
+            values['credit']
         )
 
         response_json = json_dict(values, indent=4)
@@ -189,6 +193,111 @@ def user_reward_get(username):
         points = user.user_reward_points(username)
 
         response_json = json_dict({"reward_points": points}, indent=4)
+        return Response(response_json, status=success_code, mimetype='application/json')
+
+    except:
+        response_json = json_dict({"status": "INVALID"}, indent=4)
+        return Response(response_json, status=failure_code, mimetype='application/json')
+
+
+@app.route('/api/user/<username>/premium', methods=['PUT'])
+def user_premium_update(username):
+    """
+    Get a users reward points
+    :param username:
+    :return:
+    """
+    try:
+        assert username == request.view_args['username']
+
+        try:
+            values = util.json_key(
+                request,
+                {
+                    "premium" : True
+                }
+            )
+        except:
+            response_json = json_dict({"status": "INVALID"}, indent=4)
+            return Response(response_json, status=failure_code, mimetype='application/json')
+
+        user.update_user(
+            username,
+            premium=values['premium']
+        )
+
+        response_json = json_dict({"premium": values['premium']}, indent=4)
+        return Response(response_json, status=success_code, mimetype='application/json')
+
+    except:
+        response_json = json_dict({"status": "INVALID"}, indent=4)
+        return Response(response_json, status=failure_code, mimetype='application/json')
+
+
+@app.route('/api/user/<username>/credit', methods=['PUT'])
+def user_credit_update(username):
+    """
+    Get a users reward points
+    :param username:
+    :return:
+    """
+    try:
+        assert username == request.view_args['username']
+
+        try:
+            values = util.json_key(
+                request,
+                {
+                    "credit" : True
+                }
+            )
+        except:
+            response_json = json_dict({"status": "INVALID"}, indent=4)
+            return Response(response_json, status=failure_code, mimetype='application/json')
+
+        user.user_credit_change(username,
+                                values['credit'])
+
+        response_json = json_dict({"credit": user.user_credit_amount(username)}, indent=4)
+        return Response(response_json, status=success_code, mimetype='application/json')
+
+    except:
+        response_json = json_dict({"status": "INVALID"}, indent=4)
+        return Response(response_json, status=failure_code, mimetype='application/json')
+
+
+@app.route('/api/user/<username>/type', methods=['GET'])
+def user_type(username):
+    """
+    Get a users type (free or premium)
+    :param username:
+    :return:
+    """
+    try:
+        assert username == request.view_args['username']
+
+        type = user.user_type(username)
+
+        response_json = json_dict({"type": type}, indent=4)
+        return Response(response_json, status=success_code, mimetype='application/json')
+
+    except:
+        response_json = json_dict({"status": "INVALID"}, indent=4)
+        return Response(response_json, status=failure_code, mimetype='application/json')
+
+@app.route('/api/user/<username>/credit', methods=['GET'])
+def user_credit_get(username):
+    """
+    Get a users reward points
+    :param username:
+    :return:
+    """
+    try:
+        assert username == request.view_args['username']
+
+        points = user.user_credit_amount(username)
+
+        response_json = json_dict({"credit": points}, indent=4)
         return Response(response_json, status=success_code, mimetype='application/json')
 
     except:
