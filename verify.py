@@ -8,10 +8,8 @@ def verify_birth_date(date):
     :return:
     """
     valid = True
-    print(date)
-    if not re.match('%Y/%M/%d', date):
+    if not re.match('^\d{4}\/(0?[1-9]|1[012])\/(0?[1-9]|[12][0-9]|3[01])$', date):
         valid = False
-
     return valid
 
 
@@ -25,7 +23,6 @@ def verify_str(string):
 
     if not isinstance(string, str) or string is None:
         valid = False
-
     return valid
 
 

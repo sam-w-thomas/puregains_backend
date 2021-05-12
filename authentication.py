@@ -11,19 +11,12 @@ def encode_token(key, username):
     :param username:
     :return:
     """
-
     try:
         payload = {
             'iat': datetime.datetime.utcnow(),
             'username': username
         }
-
-        token = jwt.encode(
-            payload,
-            key,
-            algorithm='HS256'
-        )
-
+        token = jwt.encode(payload,key,algorithm="HS256")
         return token
 
     except Exception as e:
@@ -40,20 +33,16 @@ def authenticated(key, request, username):
     :param username:
     :return:
     """
-
     if 'x-access-tokens' in request.headers:
         token = request.headers['x-access-tokens']
     else:
         return False
-
     try:
         token_username = decode_token(key, token)['username']
     except:
         return False
-
     if token_username != username:
         return False
-
     return True
 
 
