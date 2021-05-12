@@ -389,15 +389,12 @@ def user_tag_add(username):
         # Check user_tags parameter exists
         try:
             new_tags = json_request['user_tags']
-        except KeyError:
+            current_tags = user.user_info(username)['user_tags']
+            seperate = "" if current_tags == "" else ","  # stop incorrect commas at start of comma separated lists
+            current_tags = current_tags + seperate + new_tags.replace(" ", "")  # remove whitespace in tags
+            user.update_user(username, tags=current_tags)
+        except:
             return response_invalid()
-
-        current_tags = user.user_info(username)['user_tags']
-
-        seperate = "" if current_tags == "" else ","  # stop incorrect commas at start of comma separated lists
-        current_tags = current_tags + seperate + new_tags.replace(" ", "")  # remove whitespace in tags
-
-        user.update_user(username, tags=current_tags)
 
         response_json = json_dict({"user_tags": current_tags}, indent=4)
         return Response(response_json, status=success_code, mimetype='application/json')
@@ -671,7 +668,8 @@ def user_posts_filter():
                     "name": False
                 }
             )
-        except KeyError:
+            print(values["tags"])
+        except:
             return response_invalid()
 
         if values['tags'] is None and values['name'] is None:
@@ -710,7 +708,7 @@ def delete_post(post_id):
         post.remove_post_comments(post_id)
         post.remove_post(post_id)
 
-        response_json = json_dict({"post_id": post_id}, indent=4, default=str)
+        response_json = json_dict({"post deleted: ": post_id}, indent=4, default=str)
         return Response(response_json, status=success_code, mimetype='application/json')
 
     except Exception as e:
@@ -738,7 +736,7 @@ def delete_comment(comment_id):
 
         post.remove_comment(comment_id)
 
-        response_json = json_dict({"comment_id": comment_id}, indent=4, default=str)
+        response_json = json_dict({"Comment deleted: ": comment_id}, indent=4, default=str)
         return Response(response_json, status=success_code, mimetype='application/json')
 
     except Exception as e:
@@ -766,16 +764,14 @@ def post_tags(post_id):
 
         try:
             tags = request.json['post_tags']
-        except KeyError:
+            current_tags = post.get_post(post_id)['post_tags']
+            new_tags = util.tag_validator(current_tags + "," + tags)
+            post.update_post(
+                post_id,
+                new_tags
+            )
+        except:
             return response_invalid()
-
-        current_tags = post.get_post(post_id)['post_tags']
-        new_tags = util.tag_validator(current_tags + "," + tags)
-
-        post.update_post(
-            post_id,
-            new_tags
-        )
 
         response_json = json_dict({"post_tags": new_tags}, indent=4, default=str)
         return Response(response_json, status=success_code, mimetype='application/json')
