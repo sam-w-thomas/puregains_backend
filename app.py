@@ -216,7 +216,7 @@ def user_reward_get(username):
 @app.route('/api/user/<username>/premium', methods=['PUT'])
 def user_premium_update(username):
     """
-    Get a users reward points
+    set a users profile to premium
     :param username:
     :return:
     """
@@ -240,7 +240,6 @@ def user_premium_update(username):
         response_json = json_dict({"premium": values['premium']}, indent=4)
         return Response(response_json, status=success_code, mimetype='application/json')
 
-
     except Exception as e:
         print(e)
         return response_unknown()
@@ -249,7 +248,7 @@ def user_premium_update(username):
 @app.route('/api/user/<username>/credit', methods=['PUT'])
 def user_credit_update(username):
     """
-    Get a users reward points
+    Sets a users credit
     :param username:
     :return:
     """
@@ -296,7 +295,7 @@ def user_type(username):
 @app.route('/api/user/<username>/credit', methods=['GET'])
 def user_credit_get(username):
     """
-    Get a users reward points
+    Get a users credit
     :param username:
     :return:
     """
@@ -445,26 +444,20 @@ def user_tag_remove(username):
             username
     ):
         return response_unauthorised()
-
     try:
         assert username == request.view_args['username']
 
-        json_request = request.json
-
-        # Check user_tags paramter exists, TODO replace with function
         try:
-            tag = json_request['user_tag']
+            tag = request.json['user_tag']
+            tags = user.user_info(username)['user_tags']
+            new_tags = tags.replace(tag, '')
+            new_tags = util.tag_validator(new_tags)  # format tags
+            user.update_user(username, tags=new_tags)
         except KeyError:
             return response_invalid()
 
-        tags = user.user_info(username)['user_tags']
-        tags = util.tag_validator(tags)  # format tags
-
-        user.update_user(username, tags=tags)
-
-        response_json = json_dict({"user_tags": tags}, indent=4)
+        response_json = json_dict({"user_tags": new_tags}, indent=4)
         return Response(response_json, status=success_code, mimetype='application/json')
-
 
     except Exception as e:
         print(e)
@@ -517,17 +510,33 @@ def update_post_likes(post_id):
     :param post_id:
     :return:
     """
+
     try:
+        try:
+            json_request = request.json
+            username = json_request["username"]
+        except:
+            return response_invalid()
+        if not auth(  # authenticate user
+                app.config['SECRET_KEY'],
+                request,
+                username
+        ):
+            return response_unauthorised()
+
         assert post_id == request.view_args['post_id']
 
         # Get current likes
-        current_likes = post.get_post(post_id)['likes']
+        try:
+            current_likes = post.get_post(post_id)['likes']
+        except:
+            return response_notFound()
         new_likes = current_likes + 1
-
         post.update_post(
             post_id,
             likes=new_likes
         )
+        print("3")
 
         response_json = json_dict({"post_likes": new_likes}, indent=4)
         return Response(response_json, status=success_code, mimetype='application/json')
@@ -614,7 +623,8 @@ def add_comment(post_id):
                     "message": True
                 }
             )
-        except KeyError:
+            print(values['username'])
+        except:
             return response_invalid()
 
         try:
@@ -660,24 +670,15 @@ def user_posts_filter():
     """
 
     try:
-        try:  # verify required body parameters
-            values = util.json_key(
-                request,
-                {
-                    "tags": False,
-                    "name": False
-                }
-            )
-            print(values["tags"])
-        except:
-            return response_invalid()
+        tags = request.headers.get("tags")
+        name = request.headers.get("name")
 
-        if values['tags'] is None and values['name'] is None:
+        if tags is None and name is None:
             posts = post.get_posts()
         else:
             posts = post.get_post_tag_name(
-                tags=values['tags'],
-                name=values['name']
+                tags=tags,
+                name=name
             )
 
         response_json = json_dict(posts, indent=4, default=str)
@@ -800,19 +801,16 @@ def delete_tag(post_id):
 
         try:
             tag = request.json['post_tag']
+            current_tags = post.get_post(post_id)['post_tags']
+            new_tags = util.tag_validator(
+                current_tags.replace(tag, "")
+            )
+            post.update_post(
+                post_id,
+                post_tags=new_tags
+            )
         except KeyError:
             return response_invalid()
-
-        current_tags = post.get_post(post_id)['post_tags']
-
-        new_tags = util.tag_validator(
-            current_tags.replace(tag, "")
-        )
-
-        post.update_post(
-            post_id,
-            post_tags=new_tags
-        )
 
         response_json = json_dict({"post_tags": new_tags}, indent=4, default=str)
         return Response(response_json, status=success_code, mimetype='application/json')
