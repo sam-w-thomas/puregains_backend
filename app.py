@@ -62,10 +62,16 @@ def request_connection():
 @app.route('/api/user', methods=['POST'])
 def user_create():
     try:
-        json_request = request.json
-        name = json_request["name"]
-        birth = json_request["birth_date"]
-        password = json_request["password"]
+        name= ""
+        birth = ""
+        password = ""
+        try:
+            json_request = request.json
+            name = json_request["name"]
+            birth = json_request["birth_date"]
+            password = json_request["password"]
+        except:
+            response_invalid()
 
         try:
             avatar_path = json_request["avatar_path"]
@@ -362,7 +368,7 @@ def user_tag_get(username):
 
     except Exception as e:
         print(e)
-        return response_unknown()
+        return response_notFound()
 
 
 @app.route('/api/user/<username>/tags', methods=['PUT'])
@@ -389,15 +395,14 @@ def user_tag_add(username):
         try:
             new_tags = json_request['user_tags']
             current_tags = user.user_info(username)['user_tags']
-            seperate = "" if current_tags == "" else ","  # stop incorrect commas at start of comma separated lists
-            current_tags = current_tags + seperate + new_tags.replace(" ", "")  # remove whitespace in tags
+            separate = "" if current_tags == "" else ","  # stop incorrect commas at start of comma separated lists
+            current_tags = current_tags + separate + new_tags.replace(" ", "")  # remove whitespace in tags
             user.update_user(username, tags=current_tags)
         except:
             return response_invalid()
 
         response_json = json_dict({"user_tags": current_tags}, indent=4)
         return Response(response_json, status=success_code, mimetype='application/json')
-
 
     except Exception as e:
         print(e)
@@ -484,6 +489,9 @@ def create_post():
         except:
             return response_invalid()
 
+        if body_param['message'] == "" or body_param['post_tags'] == "":
+            response_invalid()
+
         if not auth(app.config['SECRET_KEY'], request, body_param['username']):
             return response_unauthorised()
 
@@ -536,8 +544,6 @@ def update_post_likes(post_id):
             post_id,
             likes=new_likes
         )
-        print("3")
-
         response_json = json_dict({"post_likes": new_likes}, indent=4)
         return Response(response_json, status=success_code, mimetype='application/json')
 
@@ -607,7 +613,6 @@ def add_comment(post_id):
     try:
         assert post_id == request.view_args['post_id']
 
-        print(app.config['SECRET_KEY'])
         if not auth_post(  # authenticate user
                 app.config['SECRET_KEY'],
                 request,
@@ -654,6 +659,8 @@ def user_posts(username):
 
     try:
         posts = post.get_post_user(username)
+        if not posts:
+            return response_notFound()
         response_json = json_dict(posts, indent=4, default=str)
         return Response(response_json, status=success_code, mimetype='application/json')
     except Exception as e:
@@ -698,16 +705,17 @@ def delete_post(post_id):
     """
     try:
         assert post_id == request.view_args['post_id']
-
-        if not auth_post(  # authenticate user
-                app.config['SECRET_KEY'],
-                request,
-                post_id
-        ):
-            return response_unauthorised()
-
-        post.remove_post_comments(post_id)
-        post.remove_post(post_id)
+        try:
+            if not auth_post(  # authenticate user
+                    app.config['SECRET_KEY'],
+                    request,
+                    post_id
+            ):
+                return response_unauthorised()
+            post.remove_post_comments(post_id)
+            post.remove_post(post_id)
+        except:
+            return response_notFound()
 
         response_json = json_dict({"post deleted: ": post_id}, indent=4, default=str)
         return Response(response_json, status=success_code, mimetype='application/json')
@@ -727,15 +735,16 @@ def delete_comment(comment_id):
 
     try:
         assert comment_id == request.view_args['comment_id']
-
-        if not auth_comment(  # authenticate user
-                app.config['SECRET_KEY'],
-                request,
-                comment_id
-        ):
-            return response_unauthorised()
-
-        post.remove_comment(comment_id)
+        try:
+            if not auth_comment(  # authenticate user
+                    app.config['SECRET_KEY'],
+                    request,
+                    comment_id
+            ):
+                return response_unauthorised()
+            post.remove_comment(comment_id)
+        except:
+           return response_notFound()
 
         response_json = json_dict({"Comment deleted: ": comment_id}, indent=4, default=str)
         return Response(response_json, status=success_code, mimetype='application/json')
@@ -754,15 +763,16 @@ def post_tags(post_id):
     """
 
     try:
-        assert post_id == request.view_args['post_id']
-
-        if not auth_post(  # authenticate user
-                app.config['SECRET_KEY'],
-                request,
-                post_id
-        ):
-            return response_unauthorised()
-
+        try:
+            assert post_id == request.view_args['post_id']
+            if not auth_post(  # authenticate user
+                    app.config['SECRET_KEY'],
+                    request,
+                    post_id
+            ):
+                return response_unauthorised()
+        except:
+            return response_notFound()
         try:
             tags = request.json['post_tags']
             current_tags = post.get_post(post_id)['post_tags']
@@ -791,13 +801,15 @@ def delete_tag(post_id):
     """
 
     try:
-
-        if not auth_post(  # authenticate user
-                app.config['SECRET_KEY'],
-                request,
-                post_id
-        ):
-            return response_unauthorised()
+        try:
+            if not auth_post(  # authenticate user
+                    app.config['SECRET_KEY'],
+                    request,
+                    post_id
+            ):
+                return response_unauthorised()
+        except:
+            return response_notFound()
 
         try:
             tag = request.json['post_tag']
